@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/tab_signals"
+        android:title="Signals"
+        android:icon="@android:drawable/ic_menu_agenda"/>
+    <item
+        android:id="@+id/tab_chat"
+        android:title="Analyst Chat"
+        android:icon="@android:drawable/ic_menu_send"/>
+    <item
+        android:id="@+id/tab_chart"
+        android:title="Market Chart"
+        android:icon="@android:drawable/ic_menu_week"/>
+</menu>
