@@ -1,12 +1,16 @@
-name: build
+name: Android CI (APK)
+
 on:
   push:
+    branches: [ main ]
   pull_request:
 
-jobs:
-  android:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,46 +20,40 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install SDK components & accept licenses
+      # Write local.properties with a literal SDK path and your Gemini key (hard-coded)
+      - name: Create local.properties (with hard-coded API key)
         run: |
-          sdkmanager --install \
-            "platform-tools" \
-            "platforms;android-34" \
-            "build-tools;34.0.0"
-          yes | sdkmanager --licenses
+          echo "sdk.dir=$GITHUB_WORKSPACE/android-sdk" > local.properties
+          echo "GEMINI_API_KEY=AIzaSyATNGr9Q61STQVsyytEVgiLMFeN193q0cY" >> local.properties
 
-      - name: Point Gradle at the SDK (local.properties)
-        run: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-          cat local.properties
-
-      - name: Make wrapper executable
-        run: chmod +x gradlew
-
-      - name: Clean
-        run: ./gradlew clean --no-daemon --stacktrace --info --warning-mode all
-
-      # 👇 THIS is where your API key is passed in
-      - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace --info --warning-mode all
+      - name: Install Android SDK cmdline-tools
         env:
-          GEMINI_API_KEY: ${{ secrets.AIzaSyATNGr9Q61STQVsyytEVgiLMFeN193q0cY }}
-          # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-          # Add your secret in GitHub → Settings → Secrets → Actions
-          # Call it GEMINI_API_KEY and GitHub will inject it here
+          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+        run: |
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdtools.zip
+          unzip -q cmdtools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Upload artifacts (always)
-        if: always() && !cancelled()
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+          cache-disabled: true
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build APK
+        run: ./gradlew clean assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-outputs-and-reports
-          path: |
-            app/build/outputs/**/*.apk
-            **/build/reports/**
-            **/build/test-results/**
-          if-no-files-found: warn
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
