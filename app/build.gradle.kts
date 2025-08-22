@@ -17,6 +17,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        // Uses -P GEMINI_API_KEY=... from CI or gradle.properties locally
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
 
         vectorDrawables { useSupportLibrary = true }
@@ -30,12 +31,13 @@ android {
                 "proguard-rules.pro"
             )
         }
-        debug {
-            isMinifyEnabled = false
-        }
+        debug { isMinifyEnabled = false }
     }
 
-    buildFeatures { viewBinding = true }
+    buildFeatures {
+        viewBinding = true
+        buildConfig = true   // <-- REQUIRED because you define a buildConfigField
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -49,6 +51,7 @@ android {
 }
 
 dependencies {
+    // AndroidX / Material
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
@@ -59,6 +62,10 @@ dependencies {
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
+
+    // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Optional Firebase BOM
     implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
 }
