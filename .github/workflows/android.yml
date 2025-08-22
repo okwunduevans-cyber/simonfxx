@@ -39,12 +39,12 @@ jobs:
             "platforms;android-35" \
             "build-tools;35.0.0"
 
-      # Run Gradle WITHOUT wrapper (action downloads Gradle 8.7 and runs assembleDebug)
-      - name: Build Debug APK (Gradle 8.7)
+      - name: Build Debug APK (Gradle 8.7, no cache)
         uses: gradle/gradle-build-action@v3
         with:
           gradle-version: 8.7
           arguments: assembleDebug --stacktrace --no-daemon
+          cache-disabled: true
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
