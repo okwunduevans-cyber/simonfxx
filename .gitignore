@@ -1,9 +1,15 @@
-/local.properties
+# Android/Gradle
 /.gradle/
-/.gradle/
-/build/
-/app/build/
-.cxx/
-/.idea/
-/*.iml
+**/build/
+local.properties
+*.iml
+.idea/
+
+# Termux/tmp & local downloads
+*.bak
+gradle-*/          # e.g. gradle-8.7/
+*gradle-*.zip      # e.g. gradle-8.7-bin.zip
+
+# OS noise
 .DS_Store
+Thumbs.db

@@ -1,28 +1,61 @@
-name: Android CI
-
+name: build
 on:
   push:
-    branches: ["**"]
   pull_request:
-    branches: ["**"]
 
 jobs:
-  build:
+  android:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
-      - uses: gradle/actions/setup-gradle@v3
-      - run: chmod +x ./gradlew
-      - run: ./gradlew clean --stacktrace --no-daemon
-      - name: Build APK
+          java-version: 17
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK components & accept licenses
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0"
+          yes | sdkmanager --licenses
+
+      - name: Point Gradle at the SDK (local.properties)
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          cat local.properties
+
+      - name: Make wrapper executable
+        run: chmod +x gradlew
+
+      - name: Clean
+        run: ./gradlew clean --no-daemon --stacktrace --info --warning-mode all
+
+      # 👇 THIS is where your API key is passed in
+      - name: Build Debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace --info --warning-mode all
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: ./gradlew assembleDebug --stacktrace --no-daemon -PGEMINI_API_KEY="${GEMINI_API_KEY}"
-      - uses: actions/upload-artifact@v4
+          GEMINI_API_KEY: ${{ secrets.AIzaSyATNGr9Q61STQVsyytEVgiLMFeN193q0cY }}
+          # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          # Add your secret in GitHub → Settings → Secrets → Actions
+          # Call it GEMINI_API_KEY and GitHub will inject it here
+
+      - name: Upload artifacts (always)
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: build-outputs-and-reports
+          path: |
+            app/build/outputs/**/*.apk
+            **/build/reports/**
+            **/build/test-results/**
+          if-no-files-found: warn

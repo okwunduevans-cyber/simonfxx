@@ -3,8 +3,13 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-@Suppress("UNCHECKED_CAST")
-val geminiKey: String = (project.findProperty("GEMINI_API_KEY") as String?) ?: ""
+import java.util.Properties
+
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val geminiKey: String = localProps.getProperty("GEMINI_API_KEY") ?: ""
 
 android {
     namespace = "com.example.simonfxx"
@@ -17,9 +22,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // Uses -P GEMINI_API_KEY=... from CI or gradle.properties locally
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
-
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -36,7 +39,7 @@ android {
 
     buildFeatures {
         viewBinding = true
-        buildConfig = true   // <-- REQUIRED because you define a buildConfigField
+        buildConfig = true   // required because we use buildConfigField(...)
     }
 
     compileOptions {
@@ -44,14 +47,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-
-    packaging {
-        resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
-    }
 }
 
 dependencies {
-    // AndroidX / Material
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
@@ -63,9 +61,6 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
 
-    // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    // Optional Firebase BOM
     implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
 }
