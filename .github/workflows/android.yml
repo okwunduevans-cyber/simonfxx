@@ -1,3 +1,4 @@
+cat > "/storage/emulated/0/Web App/Android App/.github/workflows/android.yml" <<'YAML'
 name: Android CI (APK)
 
 on:
@@ -19,14 +20,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Gradle env/cache (replacement for gradle/gradle-build-action)
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
       - name: Create local.properties
         run: |
           echo "sdk.dir=$HOME/android-sdk" >> local.properties
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
+          echo "GEMINI_API_KEY=\${{ secrets.GEMINI_API_KEY }}" >> local.properties
 
       - name: Install Android SDK commandline-tools
         env:
@@ -42,11 +39,13 @@ jobs:
             "platforms;android-35" \
             "build-tools;35.0.0"
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      # Run Gradle without a wrapper (the action downloads Gradle 8.7)
+      - name: Build Debug APK (Gradle 8.7)
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: 8.7
+          arguments: assembleDebug --stacktrace --no-daemon
+          build-root-directory: .
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -54,3 +53,4 @@ jobs:
           name: app-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+YAML
