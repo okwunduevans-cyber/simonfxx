@@ -3,6 +3,15 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+import java.util.Properties
+
+// ---- Read local.properties (for GEMINI_API_KEY, sdk.dir, etc.)
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val geminiKey: String = localProps.getProperty("GEMINI_API_KEY") ?: ""
+
 android {
     namespace = "com.example.simonfxx"
     compileSdk = 35
@@ -14,7 +23,9 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        buildConfigField("String", "GEMINI_API_KEY", "\"${project.findProperty("GEMINI_API_KEY") ?: ""}\"")
+        // Expose your Gemini key to code as BuildConfig.GEMINI_API_KEY
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -23,16 +34,22 @@ android {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
-        debug { isMinifyEnabled = false }
+        debug {
+            isMinifyEnabled = false
+        }
     }
 
-    buildFeatures { viewBinding = true }
+    buildFeatures {
+        viewBinding = true
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 dependencies {
@@ -48,9 +65,9 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
 
-    // Networking (used later)
+    // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // Optional Firebase BOM (safe to leave)
+    // (Optional) Firebase BOM if you’re using Firebase later
     implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
 }
