@@ -1,7 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#26263A</color>
-    <color name="bot_white">#FFFFFF</color>
-    <color name="bot_shadow">#C9C9D6</color>
-    <color name="visor">#161622</color>
-    <color name="eye_glow">#9AB0FF</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
 </resources>
