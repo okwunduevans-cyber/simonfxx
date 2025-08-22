@@ -19,13 +19,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Create local.properties so AGP finds the SDK; add your key if set as a secret
+      # Create local.properties (SDK dir + Gemini key from repo secret)
       - name: Create local.properties
         run: |
           echo "sdk.dir=$HOME/android-sdk" >> local.properties
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
 
-      # Install Android SDK commandline-tools and required platforms/build-tools
+      # Install Android SDK cmdline-tools + required platforms/build-tools
       - name: Install Android SDK cmdline-tools
         env:
           ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
@@ -40,25 +40,22 @@ jobs:
             "platforms;android-35" \
             "build-tools;35.0.0"
 
-      # Modern Gradle setup (no deprecations)
+      # Configure Gradle (no cache to keep things simple & stable)
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
           cache-disabled: true
 
-      # Build using wrapper if present; else fall back to 'gradle' from setup
-      - name: Assemble Debug APK
-        shell: bash
-        run: |
-          if [ -x "./gradlew" ]; then
-            ./gradlew --version
-            ./gradlew assembleDebug --stacktrace --no-daemon
-          else
-            gradle --version
-            gradle assembleDebug --stacktrace --no-daemon
-          fi
+      # Make the wrapper runnable (fix for "Permission denied" / “No build results”)
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
 
+      # Build the Debug APK with the wrapper
+      - name: Assemble Debug APK
+        run: ./gradlew clean assembleDebug --stacktrace --no-daemon
+
+      # Upload the APK
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
