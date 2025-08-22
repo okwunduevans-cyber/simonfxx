@@ -1,92 +1,28 @@
-name: Android CI (APK)
+name: Android CI
 
 on:
   push:
-    branches: [ main ]
+    branches: ["**"]
   pull_request:
+    branches: ["**"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
-
-      # Make sure Gradle has a sane default config even if the file is missing in repo
-      - name: Create gradle.properties (CI fallback)
-        run: |
-          cat > gradle.properties <<'EOF'
-          org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8 -Dkotlin.daemon.jvm.options="-Xmx2g"
-          org.gradle.daemon=false
-          org.gradle.parallel=true
-          org.gradle.caching=true
-          android.useAndroidX=true
-          android.enableJetifier=true
-          kotlin.code.style=official
-          kotlin.incremental=true
-          kotlin.build.report.enable=false
-          kotlin.build.report.http=false
-          kotlin.build.cache=true
-          EOF
-
-      # Create local.properties so AGP finds the SDK; inject Gemini key from Secrets
-      - name: Create local.properties
-        run: |
-          echo "sdk.dir=$GITHUB_WORKSPACE/android-sdk" >> local.properties
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
-
-      # Install Android SDK commandline-tools and required platforms/build-tools
-      - name: Install Android SDK cmdline-tools
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v3
+      - run: chmod +x ./gradlew
+      - run: ./gradlew clean --stacktrace --no-daemon
+      - name: Build APK
         env:
-          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-        run: |
-          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
-          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdtools.zip
-          unzip -q cmdtools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
-          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
-
-      # Modern Gradle setup
-      - name: Set up Gradle 8.7
-        uses: gradle/actions/setup-gradle@v4
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: ./gradlew assembleDebug --stacktrace --no-daemon -PGEMINI_API_KEY="${GEMINI_API_KEY}"
+      - uses: actions/upload-artifact@v4
         with:
-          gradle-version: 8.7
-          cache-disabled: true
-
-      # Generate wrapper if the repo doesn't have one (first run safety net)
-      - name: Generate Gradle wrapper if missing
-        shell: bash
-        run: |
-          if [ ! -f ./gradlew ]; then
-            echo "gradlew missing; generating wrapper with Gradle 8.7"
-            curl -sLo gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
-            unzip -q gradle.zip -d gradle-8.7
-            ./gradle-8.7/gradle-8.7/bin/gradle wrapper --gradle-version 8.7
-          fi
-
-      # Ensure wrapper is executable
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      # Build Debug APK using the wrapper
-      - name: Assemble Debug APK
-        run: ./gradlew clean assembleDebug --stacktrace --no-daemon
-
-      # Upload the APK produced by :app
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
+          name: app-debug
           path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error

@@ -2,41 +2,21 @@ package com.example.simonfxx
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.commit
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.appbar.MaterialToolbar
-import com.example.simonfxx.ui.signals.SignalsFragment
-import com.example.simonfxx.ui.chat.ChatFragment
-import com.example.simonfxx.ui.chart.ChartFragment
+import com.example.simonfxx.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        // Hook up Material toolbar (Theme.NoActionBar means we provide our own)
-        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.title = "Simonfxx"
-
-        if (savedInstanceState == null) {
-            supportFragmentManager.commit { replace(R.id.container, SignalsFragment()) }
-        }
-
-        val bottom = findViewById<BottomNavigationView>(R.id.bottomNav)
-        bottom.setOnItemSelectedListener { item ->
-            val (frag, title) = when (item.itemId) {
-                R.id.tab_signals -> SignalsFragment() to "Signals"
-                R.id.tab_chat    -> ChatFragment() to "Analyst Chat"
-                R.id.tab_chart   -> ChartFragment() to "Market Chart"
-                else             -> SignalsFragment() to "Signals"
-            }
-            supportFragmentManager.commit {
-                setReorderingAllowed(true)
-                replace(R.id.container, frag)
-            }
-            supportActionBar?.title = title
-            true
+        val key = BuildConfig.GEMINI_API_KEY
+        binding.hello.text = if (key.isBlank()) {
+            "Hello, SimonFXX!\n(GEMINI_API_KEY not set)"
+        } else {
+            "Hello, SimonFXX!\nAPI key present ✓"
         }
     }
 }

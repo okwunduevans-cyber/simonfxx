@@ -1,32 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:background="?attr/colorSurface"
-        app:title="Simonfxx"
-        app:titleCentered="true" />
-
-    <FrameLayout
-        android:id="@+id/container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="?attr/actionBarSize" />
-
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNav"
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/hello"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="?attr/colorSurface"
-        android:elevation="8dp"
-        app:menu="@menu/bottom_nav"/>
+        android:text="Building…"
+        android:textSize="20sp"
+        android:layout_gravity="center"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
