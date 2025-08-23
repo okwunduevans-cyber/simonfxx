@@ -3,7 +3,7 @@ name: Android CI (APK)
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  pull_request:
 
 permissions:
   contents: read
@@ -22,12 +22,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Create local.properties from repo secret (do NOT hardcode keys here)
-      - name: Create local.properties
+      # Local config for CI (SDK path + Gemini key from repository secret)
+      - name: Create local.properties (CI)
         run: |
           echo "sdk.dir=$GITHUB_WORKSPACE/android-sdk" > local.properties
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
-          echo "Wrote local.properties"
+          echo "local.properties:"
+          sed -n '1,2p' local.properties
 
       - name: Install Android SDK cmdline-tools
         env:
@@ -50,19 +51,20 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # If your module name is not 'app', change ':app:assembleDebug' accordingly
-      - name: Build Debug APK
-        run: ./gradlew clean :app:assembleDebug --no-daemon --stacktrace
+      # Build THIS module explicitly
+      - name: Assemble Debug APK (:app)
+        run: ./gradlew :app:clean :app:assembleDebug --no-daemon --stacktrace
 
-      - name: List any APKs (debug info)
+      # Show what got produced anywhere (helps debug paths)
+      - name: List APKs anywhere
         run: |
-          echo "== looking for APKs =="
+          echo "== APKs under repo =="
           find . -type f -name "*.apk" -print || true
 
-      - name: Upload APK artifact (any module)
+      # Upload the standard app module output
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: |
-            **/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
