@@ -3,7 +3,7 @@ name: Android CI (APK)
 on:
   push:
     branches: [ main ]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -11,6 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,11 +22,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Use repo secret GEMINI_API_KEY (Settings → Secrets and variables → Actions)
+      # Create local.properties from repo secret (do NOT hardcode keys here)
       - name: Create local.properties
         run: |
           echo "sdk.dir=$GITHUB_WORKSPACE/android-sdk" > local.properties
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
+          echo "Wrote local.properties"
 
       - name: Install Android SDK cmdline-tools
         env:
@@ -45,27 +47,22 @@ jobs:
           gradle-version: 8.7
           cache-disabled: true
 
-      - name: Make gradlew executable (if present)
-        run: if [ -f ./gradlew ]; then chmod +x ./gradlew; fi
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
 
+      # If your module name is not 'app', change ':app:assembleDebug' accordingly
       - name: Build Debug APK
-        run: |
-          if [ -x ./gradlew ]; then
-            ./gradlew clean :app:assembleDebug --no-daemon --stacktrace
-          else
-            gradle clean :app:assembleDebug --no-daemon --stacktrace
-          fi
+        run: ./gradlew clean :app:assembleDebug --no-daemon --stacktrace
 
-      - name: List any APKs found
+      - name: List any APKs (debug info)
         run: |
-          echo "== any *.apk found =="
+          echo "== looking for APKs =="
           find . -type f -name "*.apk" -print || true
 
-      - name: Upload APK artifact
+      - name: Upload APK artifact (any module)
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: |
-            app/build/outputs/apk/debug/*.apk
             **/build/outputs/apk/debug/*.apk
           if-no-files-found: error
