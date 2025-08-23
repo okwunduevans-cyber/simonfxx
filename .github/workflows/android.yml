@@ -51,10 +51,12 @@ jobs:
       - name: Assemble Debug APK (:app)
         run: ./gradlew :app:clean :app:assembleDebug --no-daemon --stacktrace --info | tee build.log
 
-      - name: List APKs anywhere
+      - name: Show outputs tree
         if: always()
         run: |
-          echo "== APKs under repo =="
+          echo "== app/build/outputs (tree) =="
+          ls -R app/build/outputs || true
+          echo "== any *.apk under repo =="
           find . -type f -name "*.apk" -print || true
 
       - name: Upload build logs (always)
@@ -68,6 +70,7 @@ jobs:
       - name: Upload APK artifact (if exists)
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: debug-apks
+          path: |
+            **/build/outputs/apk/**/*.apk
           if-no-files-found: ignore
