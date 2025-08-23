@@ -12,26 +12,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        id: setup-java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Write local.properties
-        run: |
-          echo "sdk.dir=$GITHUB_WORKSPACE/android-sdk" > local.properties
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
-          sed -n '1p' local.properties && echo "GEMINI_API_KEY=*** (hidden)"
-
-      - name: Install Android SDK cmdline-tools + platforms
-        env:
-          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+      - name: Install Android SDK cmdline-tools
         run: |
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
           curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdtools.zip
@@ -50,25 +44,22 @@ jobs:
       - name: Make wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Gradle clean (verbose)
-        run: ./gradlew clean --no-daemon --stacktrace --info | tee gradle-clean.log
+      - name: Build APK (:app)
+        run: ./gradlew :app:clean :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Build APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace --info | tee gradle-build.log
-
-      - name: Upload build logs (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs
-          path: |
-            gradle-clean.log
-            gradle-build.log
+      - name: Show build outputs (debug)
+        run: |
+          echo "== app/build/outputs =="
+          ls -R app/build/outputs || true
+          echo "== any *.apk found in repo =="
+          find . -type f -name "*.apk" -print || true
 
       - name: Upload APK artifact (if exists)
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/**/**/*.apk
+            **/build/outputs/**/**/*.apk
+          if-no-files-found: ignore
