@@ -5,6 +5,7 @@ plugins {
 
 import java.util.Properties
 
+// ---- Read local.properties (for GEMINI_API_KEY, sdk.dir, etc.)
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -22,7 +23,9 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        // Expose your Gemini key to code as BuildConfig.GEMINI_API_KEY
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -38,8 +41,8 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         viewBinding = true
-        buildConfig = true   // required because we use buildConfigField(...)
     }
 
     compileOptions {
@@ -61,6 +64,9 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
 
+    // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // (Optional) Firebase BOM
     implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
 }
