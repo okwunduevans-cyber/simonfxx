@@ -11,10 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    env:
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,7 +21,15 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # Use repo secret GEMINI_API_KEY (Settings → Secrets and variables → Actions)
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$GITHUB_WORKSPACE/android-sdk" > local.properties
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
+
       - name: Install Android SDK cmdline-tools
+        env:
+          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
         run: |
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
           curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdtools.zip
@@ -41,25 +45,27 @@ jobs:
           gradle-version: 8.7
           cache-disabled: true
 
-      - name: Make wrapper executable
-        run: chmod +x ./gradlew
+      - name: Make gradlew executable (if present)
+        run: if [ -f ./gradlew ]; then chmod +x ./gradlew; fi
 
-      - name: Build APK (:app)
-        run: ./gradlew :app:clean :app:assembleDebug --no-daemon --stacktrace
-
-      - name: Show build outputs (debug)
+      - name: Build Debug APK
         run: |
-          echo "== app/build/outputs =="
-          ls -R app/build/outputs || true
-          echo "== any *.apk found in repo =="
+          if [ -x ./gradlew ]; then
+            ./gradlew clean :app:assembleDebug --no-daemon --stacktrace
+          else
+            gradle clean :app:assembleDebug --no-daemon --stacktrace
+          fi
+
+      - name: List any APKs found
+        run: |
+          echo "== any *.apk found =="
           find . -type f -name "*.apk" -print || true
 
-      - name: Upload APK artifact (if exists)
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: |
             app/build/outputs/apk/debug/*.apk
-            app/build/outputs/**/**/*.apk
-            **/build/outputs/**/**/*.apk
-          if-no-files-found: ignore
+            **/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
