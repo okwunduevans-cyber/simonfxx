@@ -3,8 +3,13 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Read local.properties safely (for GEMINI_API_KEY, sdk.dir, etc.)
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import java.util.Properties
+
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val geminiKey: String = localProps.getProperty("GEMINI_API_KEY") ?: ""
 
 android {
     namespace = "com.example.simonfxx"
@@ -17,11 +22,13 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // Read Gemini API key from local.properties and expose as BuildConfig.GEMINI_API_KEY
-        val geminiKey: String = gradleLocalProperties(rootDir).getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
-
         vectorDrawables { useSupportLibrary = true }
+    }
+
+    buildFeatures {
+        viewBinding = true
+        buildConfig = true   // <-- REQUIRED for custom BuildConfig fields
     }
 
     buildTypes {
@@ -32,28 +39,17 @@ android {
                 "proguard-rules.pro"
             )
         }
-        debug {
-            isMinifyEnabled = false
-        }
-    }
-
-    buildFeatures {
-        // Important: needed for custom BuildConfig fields
-        buildConfig = true
-        viewBinding = true
+        debug { isMinifyEnabled = false }
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlinOptions { jvmTarget = "17" }
 }
 
 dependencies {
-    // AndroidX / Material
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
@@ -64,10 +60,6 @@ dependencies {
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
-
-    // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    // (Optional) Firebase BOM if you use Firebase later
     implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
 }
