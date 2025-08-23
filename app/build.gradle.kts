@@ -3,14 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-import java.util.Properties
-
-// ---- Read local.properties (for GEMINI_API_KEY, sdk.dir, etc.)
-val localProps = Properties().apply {
-    val f = rootProject.file("local.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
-}
-val geminiKey: String = localProps.getProperty("GEMINI_API_KEY") ?: ""
+// Read local.properties safely (for GEMINI_API_KEY, sdk.dir, etc.)
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 
 android {
     namespace = "com.example.simonfxx"
@@ -23,7 +17,8 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // Expose your Gemini key to code as BuildConfig.GEMINI_API_KEY
+        // Read Gemini API key from local.properties and expose as BuildConfig.GEMINI_API_KEY
+        val geminiKey: String = gradleLocalProperties(rootDir).getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
 
         vectorDrawables { useSupportLibrary = true }
@@ -37,10 +32,13 @@ android {
                 "proguard-rules.pro"
             )
         }
-        debug { isMinifyEnabled = false }
+        debug {
+            isMinifyEnabled = false
+        }
     }
 
     buildFeatures {
+        // Important: needed for custom BuildConfig fields
         buildConfig = true
         viewBinding = true
     }
@@ -49,10 +47,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 dependencies {
+    // AndroidX / Material
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
@@ -67,6 +68,6 @@ dependencies {
     // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // (Optional) Firebase BOM
+    // (Optional) Firebase BOM if you use Firebase later
     implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
 }
