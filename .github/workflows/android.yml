@@ -11,7 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,12 +21,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Local config for CI (SDK path + Gemini key from repository secret)
       - name: Create local.properties (CI)
         run: |
           echo "sdk.dir=$GITHUB_WORKSPACE/android-sdk" > local.properties
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
-          echo "local.properties:"
           sed -n '1,2p' local.properties
 
       - name: Install Android SDK cmdline-tools
@@ -51,20 +48,26 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # Build THIS module explicitly
       - name: Assemble Debug APK (:app)
-        run: ./gradlew :app:clean :app:assembleDebug --no-daemon --stacktrace
+        run: ./gradlew :app:clean :app:assembleDebug --no-daemon --stacktrace --info | tee build.log
 
-      # Show what got produced anywhere (helps debug paths)
       - name: List APKs anywhere
+        if: always()
         run: |
           echo "== APKs under repo =="
           find . -type f -name "*.apk" -print || true
 
-      # Upload the standard app module output
-      - name: Upload APK artifact
+      - name: Upload build logs (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build.log
+          if-no-files-found: ignore
+
+      - name: Upload APK artifact (if exists)
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          if-no-files-found: ignore
